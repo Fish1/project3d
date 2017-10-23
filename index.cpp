@@ -17,6 +17,19 @@
 
 GLuint linkShaders(GLuint vertexShader, GLuint fragmentShader);
 
+bool q_down = false;
+void keyboard(GLFWwindow * window, int key, int scancode, int action, int mods)
+{
+	if(key == GLFW_KEY_Q && action == GLFW_PRESS)
+	{
+		q_down = true;
+	}
+	else if(key == GLFW_KEY_Q && action == GLFW_RELEASE)
+	{
+		q_down = false;
+	}
+}
+
 void errorCallback(int error, const char * description)
 {
 	printf("Error: %s\n", description);
@@ -34,6 +47,8 @@ int main(void)
 	}
 
 	GLFWwindow * window = glfwCreateWindow(640, 480, "mygame", nullptr, nullptr);
+
+	glfwSetKeyCallback(window, keyboard);
 
 	if(!window)
 	{
@@ -131,6 +146,11 @@ int main(void)
 
 		// POLL EVENTS
 		glfwPollEvents();
+
+		if(q_down)
+		{
+			printf("cool");
+		}
 	}
 
 	glfwDestroyWindow(window);

@@ -13,12 +13,13 @@ Model::Model()
 
 float calcY(float x, float z)
 {
-	return cos(x) - sin(z);
+	return 0.0f;
+	//return cos(x) - sin(z);
 }
 
 void Model::create_plane()
 {
-	int sizeX = 1000;
+	int sizeX = 10;
 	int sizeZ = 10;
 	m_vertexCount = (sizeX * sizeZ) * 4;
 	m_vertices = new Vertex[m_vertexCount];
@@ -29,7 +30,7 @@ void Model::create_plane()
 
 	unsigned int vertex_i = 0;
 	unsigned int index_i = 0;
-	float stepX = 0.01f;
+	float stepX = 1.0f;
 	float stepZ = 1.0f;
 
 	for(int x = 0; x < sizeX; ++x)
