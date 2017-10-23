@@ -78,8 +78,6 @@ void Model::create_plane()
 			m_normals[vertex_i - 2] = {n.x, n.y, n.z};
 			m_normals[vertex_i - 1] = {n.x, n.y, n.z};
 
-			printf("%f\n", n.y);
-
 			m_indexes[index_i++] = vertex_i - 4;
 			m_indexes[index_i++] = vertex_i - 2;
 			m_indexes[index_i++] = vertex_i - 1;
