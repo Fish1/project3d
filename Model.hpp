@@ -13,6 +13,8 @@ struct Vertex
 
 typedef Vertex Normal;
 
+typedef GLuint Index;
+
 class Model
 {
 private:
@@ -21,7 +23,11 @@ private:
 
 	Normal * m_normals;
 
+	Index * m_indexes;
+
 	GLuint m_vertexCount;
+
+	GLuint m_indexCount;
 
 public:
 
@@ -31,7 +37,17 @@ public:
 
 	Normal * getNormals();
 
+	Index * getIndexes();
+
 	GLuint getVertexCount();
+
+	GLuint getIndexCount();
+
+private:
+
+	void create_box();
+
+	void create_plane();
 
 };
 

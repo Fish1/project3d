@@ -3,26 +3,37 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 #include <stdlib.h> // exit();
-#include <stdio.h>
+#include <math.h>
+#include <stdio.h> 
 
 #include "Model.hpp"
 #include "Shader.hpp"
+#include "Camera.hpp"
 
 GLuint linkShaders(GLuint vertexShader, GLuint fragmentShader);
 
+void errorCallback(int error, const char * description)
+{
+	printf("Error: %s\n", description);
+}
+
 int main(void)
 {
+	glfwSetErrorCallback(errorCallback);
+
 	if(!glfwInit())
 	{
-		printf("glew init failed. \n");
+		printf("glfw init failed. \n");
 
 		return 1;
 	}
 
-	GLFWwindow * window = glfwCreateWindow(600, 600, "OpenGL", nullptr, nullptr);
+	GLFWwindow * window = glfwCreateWindow(640, 480, "mygame", nullptr, nullptr);
 
 	if(!window)
 	{
@@ -42,45 +53,39 @@ int main(void)
 		return 1;
 	}
 
+	// ENABLE CULLING
+	glFrontFace(GL_CCW);
+	glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+
+	// ENABLE DEPTH
+	glDepthFunc(GL_LEQUAL);
+	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 	glClearDepth(1.0f);
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
 
-	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-
+	// CREATE SHADERS
 	Shader vertexShader(GL_VERTEX_SHADER, "shader.vs");
-
 	Shader fragmentShader(GL_FRAGMENT_SHADER, "shader.fs");
-
 	GLuint shaderProgram = linkShaders(vertexShader.getHandle(),
 					fragmentShader.getHandle());
-
-	Model model;
-
-	GLint u_model = glGetUniformLocation(shaderProgram, "u_model");
-	
-	GLint u_red = glGetUniformLocation(shaderProgram, "u_red");
-	GLint u_green = glGetUniformLocation(shaderProgram, "u_green");
-	GLint u_blue = glGetUniformLocation(shaderProgram, "u_blue");
-
+	// FIND UNIFORM VARIABLES
+	GLint u_modelViewProjection = glGetUniformLocation(shaderProgram, "u_modelViewProjection");
+	GLint u_normal = glGetUniformLocation(shaderProgram, "u_normal");
 	GLint u_light_pos = glGetUniformLocation(shaderProgram, "u_light_pos");
 
-	glm::mat4 projection = glm::perspective(35.0f, 1.0f / 2.0f, 0.1f, 100.0f);
+	// CREATE MODEL
+	Model model;
 
-	float r_red = 0.003f;
-	float red = 0.0f;
+	// CREATE PROJECTION
+	glm::mat4 projection = glm::perspective(45.0f, 640.0f / 480.0f, 0.01f, 100.0f);
 
-	float r_green = 0.002f;
-	float green = 0.5f;
+	// CREATE CAMERA
+	Camera camera;
+	camera.rotate(-M_PI / 4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 
-	float r_blue = 0.001f;
-	float blue = 1.0f;
-
-	float x = -1.0f;
-	float rot = 0.0f;
-
-	glm::vec4 light = glm::vec4(-2.0f, 0.0f, -1.0f, 1.0f);
+	// LIGHT POSITION
+	glm::vec3 light = glm::vec3(0.0f, 3.0f, -3.0f);
 
 	while(!glfwWindowShouldClose(window))
 	{
@@ -90,48 +95,41 @@ int main(void)
 		// USE SHADER
 		glUseProgram(shaderProgram);
 	
-		// CREATE MATRIX	
+		// CREATE MODEL MATRIX	
 		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-		glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-		glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), rot += 0.01f, glm::vec3(1.0f, 1.0f, 1.0f));
-		
-		glm::mat4 modelMatrix = transform * rotate * scale;
+		glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, -3.0f));
+		glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+		glm::mat4 modelMatrix = translate * rotate * scale;
 
-		// SET MATRIX
-		glUniformMatrix4fv(u_model, 1, GL_FALSE, glm::value_ptr(projection * modelMatrix));
+		// SET MATRIX MODEL VIEW
+		glm::mat4 modelViewProjection = projection * camera.getView() * modelMatrix;
+		glUniformMatrix4fv(u_modelViewProjection, 1, GL_FALSE, glm::value_ptr(modelViewProjection));
+		
+		// SET MATRIX NORMAL
+		glUniformMatrix4fv(u_normal, 1, GL_FALSE, glm::value_ptr(rotate));
 
 		// SET LIGHT
-		glUniform4f(u_light_pos, light.x, light.y, light.z, light.w); 
+		glUniform3f(u_light_pos, light.x, light.y, light.z); 
 
-		// SET COLOR	
-		red += r_red;
-		if(red > 1.0f || red < 0.0f) r_red *= -1.0f;
-		glUniform1f(u_red, red);
-
-		green += r_green;
-		if(green > 1.0f || green < 0.0f) r_green *= -1.0f;
-		glUniform1f(u_green, green);
-		
-		blue += r_blue;
-		if(blue > 1.0f || blue < 0.0f) r_blue *= -1.0f;
-		glUniform1f(u_blue, blue);
-
-		// TURN ON VERTICES AND COLORS
+		// TURN ON VERTICES AND NORMALS
 		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
 
-		// POINT TO TRIANGLE DATA
+		// POINT TO MODEL DATA
 		glVertexPointer(3, GL_FLOAT, 0, model.getVertices());
 		glNormalPointer(GL_FLOAT, 0, model.getNormals());
 
-		// DRAW TRIANGLE
-		glDrawArrays(GL_TRIANGLES, 0, model.getVertexCount());
+		// DRAW TRIANGLE USING INDEXES
+		glDrawElements(GL_TRIANGLES, model.getIndexCount(), GL_UNSIGNED_INT, model.getIndexes());
 
-		// TURN OFF VERTICES AND COLORS
+		// TURN OFF VERTICES AND NORMALS
 		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
 
 		// SHOW SCREEN
 		glfwSwapBuffers(window);
 
+		// POLL EVENTS
 		glfwPollEvents();
 	}
 
